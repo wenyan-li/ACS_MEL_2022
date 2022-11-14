@@ -28,10 +28,8 @@ https://cran.csiro.au/
 ## Download demo data
 1. BD Rhapsody demo data
 https://scomix.bd.com/hc/en-us/articles/6990647359501-Rhapsody-WTA-Demo-Datasets-with-Enhanced-Cell-Capture-Beads
-
-download this one "WTA + AbSeq + SMK" from the list
+* download this one "WTA + AbSeq + SMK" from the list
 
 2. 10X demo data
 https://www.10xgenomics.com/resources/datasets/1-k-pbm-cs-from-a-healthy-donor-gene-expression-and-cell-surface-protein-3-standard-3-0-0
-
-files needed: Feature / cell matrix (filtered)
+* files needed: Feature / cell matrix (filtered)
