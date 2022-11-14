@@ -1,21 +1,21 @@
-# ACS_MEL_2022
+## ACS_MEL_2022
 R Materials for ACS Melbourne 2022 
 Analytical Workflows for Single-Cell Multiomic Data workshop
 
-# Date
+## Date
 Sunday, Nov 20, 9am
 
-# Host
+## Host
 Wenyan Li
 
-# Software required
+## Software required
 Rstudio (free version) - download and install with this link:
 https://posit.co/products/open-source/rstudio/
 
 R - download and install the latest version. (Note: choose the one that matches your PC system)
 https://cran.csiro.au/
 
-# (encourage to try) Install R packages in Rstudio:
+## (encourage to try) Install R packages in Rstudio:
 1. Open Rstudio
 2. Inside the "Console", where you should see a welcoming message from R, showing what version of R you are using
 3. type in the following line and hit enter. What this commend line does is install the Seurat package if you haven't installed it already
@@ -23,7 +23,7 @@ https://cran.csiro.au/
 5. install package tidyverse
 6. if (!require(tidyverse)) install.packages("tidyverse")
 
-# Download demo data
+## Download demo data
 1. BD Rhapsody demo data
 https://scomix.bd.com/hc/en-us/articles/6990647359501-Rhapsody-WTA-Demo-Datasets-with-Enhanced-Cell-Capture-Beads
 download this one "WTA + AbSeq + SMK" from the list
