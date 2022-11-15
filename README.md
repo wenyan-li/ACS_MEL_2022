@@ -21,6 +21,8 @@ https://cran.csiro.au/
 1. Open Rstudio
 2. Inside the "Console", where you should see a welcoming message from R, showing what version of R you are using
 3. type in the following line and hit enter. What this command line does is install the Seurat package if you haven't installed it already
+![MicrosoftTeams-image (4)](https://user-images.githubusercontent.com/63385592/201839621-358f2bbb-b7e8-45d2-875b-6ff6f6ea254c.png)
+
 ##### if (!require(Seurat)) install.packages("Seurat")
 4. install package tidyverse
 ##### if (!require(tidyverse)) install.packages("tidyverse")
