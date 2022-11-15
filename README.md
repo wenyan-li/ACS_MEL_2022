@@ -24,6 +24,7 @@ https://cran.csiro.au/
 4. if (!require(Seurat)) install.packages("Seurat")
 5. install package tidyverse
 6. if (!require(tidyverse)) install.packages("tidyverse")
+7. if (!require(patchwork)) install.packages("patchwork")
 
 ## Download demo data
 1. BD Rhapsody demo data
