@@ -20,7 +20,7 @@ https://cran.csiro.au/
 ## (encourage to try) Install R packages in Rstudio:
 1. Open Rstudio
 2. Inside the "Console", where you should see a welcoming message from R, showing what version of R you are using
-3. type in the following line and hit enter. What this commend line does is install the Seurat package if you haven't installed it already
+3. type in the following line and hit enter. What this command line does is install the Seurat package if you haven't installed it already
 ##### if (!require(Seurat)) install.packages("Seurat")
 4. install package tidyverse
 ##### if (!require(tidyverse)) install.packages("tidyverse")
