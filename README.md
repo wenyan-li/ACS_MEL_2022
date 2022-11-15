@@ -27,7 +27,7 @@ https://cran.csiro.au/
 5. install package patchwork
 ##### if (!require(patchwork)) install.packages("patchwork")
 6. check if packages are installed successfully
-##### libaray(Seurat)
+##### library(Seurat)
 if Seurat package doesn't exist, you will see an error message like this:
 ###### Error in library(Seurat) : there is no package called ‘Seurat’
 
