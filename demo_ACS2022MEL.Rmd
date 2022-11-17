@@ -1,0 +1,409 @@
+---
+title: "ACS2022MEL_scRNAseq_demo"
+author: "Wenyan"
+date: '2022-11-14'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### This is a RMarkdown file, which has separate sections for texts and R scripts. 
+### It's a good tool to build analytical reports.
+
+## Step R environment
+
+### 1. Install R packages
+```{r}
+if (!require(Seurat)) install.packages("Seurat")
+if (!require(tidyverse)) install.packages("tidyverse")
+if (!require(patchwork)) install.packages("patchwork")
+```
+
+### 2. Load R packages
+```{r}
+library(Seurat)
+library(tidyverse)
+library(patchwork)
+```
+
+### 3. Working directory
+```{r}
+# check the current working directory
+getwd()
+```
+
+```{r}
+# use a path as working directory
+setwd(dir = "/Users/wli/Documents/scRNAseq_Git_GitHub/ACS_MEL_2022/ACS_MEL_2022") 
+
+# try another path to test
+# setwd(dir = "/Users/wli/Documents/") 
+```
+
+### or use the Rstudio "File" tab on the right to choose the 
+### folder you want to set as working directory
+
+### However, when you create a new project, the working directory will be the 
+### folder that you choose to store your project files
+
+## R basis
+### Numeric
+```{r}
+# numbers
+x <- 3 # assign 3 to x
+
+# print x out
+x 
+```
+
+```{r}
+# vector
+y <- c(1, 3, 5) # assign 1, 3 and 5 to 5
+
+# print y out
+y 
+```
+
+```{r}
+# concatenate x and y
+z <- c(x, y) 
+
+# print z out
+z 
+```
+
+### Strings
+```{r}
+a <- "I am a string"
+a
+```
+
+```{r}
+# string vectors
+b <- c("oh", "my", "god")
+b
+```
+
+```{r}
+# concatenate strings
+c <- c(a, b)
+c
+```
+
+### Data frame
+```{r}
+# dataframe
+df <- data.frame(col1 = c(1:3)*10, 
+                 col2 = y, 
+                 col3 = b, 
+                 row.names = c("row name 1", 
+                               "row name 2", 
+                               "row name 3"))
+df
+```
+```{r}
+# subset a column or more
+df$col1
+
+df[c("col1", "col3")]
+
+```
+```{r}
+# subset based on criterion 
+df[df$col1 > 10, ]
+
+# but only want data from col3
+df[df$col1 > 10, "col3"]
+```
+
+### List
+```{r}
+# you can store different data types all in one R objects. The datasets do need to be
+# the same size.
+a_list <- list("xman", "superman", "spiderman", c(1:5))
+a_list
+
+```
+
+```{r}
+# or use existing objects
+b_list <- list(df, x, a)
+b_list
+
+```
+```{r}
+# assign names to each list of b_list
+names(b_list) <- c("df", "number", "string")
+
+# extract elements from a list
+b_list$number
+
+```
+
+```{r}
+# logical operators
+saveFile <- TRUE # or just T
+saveCSV <- F
+```
+
+## scRNAseq analysis
+### Read gene expression files to R
+### BD Rhapsody platform
+```{r}
+# Data from Rhapsody
+# The demo data selected was created from a WTA pipeline. Hence, use
+# the file ends with RSEC_MolsPerCell.csv
+
+# method 1 - manually add find the file path
+rhap_file <- "Rhapsody PBMC WTA AbSeq SMK/Combined_BD-Demo-WTA-AbSeq-SMK_RSEC_MolsPerCell.csv" 
+
+# method 2 - search file that contains this string "RSEC_MolsPerCell.csv"
+rhap_file2 <- list.files("Rhapsody PBMC WTA AbSeq SMK", 
+                         full.names = T)[grep("RSEC_MolsPerCell.csv", 
+                                              list.files("Rhapsody PBMC WTA AbSeq SMK", 
+                                                         full.names = T))]
+```
+
+```{r}
+# load file as a matrix
+mat <- read.table(file = rhap_file, 
+                  sep = ",", 
+                  header = T) 
+
+# check mat 
+mat[1:10, 1:10]
+
+```
+```{r}
+# 1. use Cell_Index column as row names and remove this column
+# 2. transpose matrix
+mat <- mat %>% 
+       tibble::column_to_rownames(var = "Cell_Index") %>% 
+       t()
+
+mat[1:10, 1:10]
+```
+
+```{r}
+# Protein and RNA reads are mixed in the matrix. We need to separate them.
+# Protein oligos end with pAbO. It can be used as a protein selector.
+mat_ab <- subset(mat, 
+                 rownames(mat) %in% grep("PABO",
+	 	                                     rownames(mat), 
+	 	                                     ignore.case = T, 
+	 	                                     value = TRUE)
+                                        )
+
+mat_ab[1:10, 1:10]
+```
+
+```{r}
+# then the rest are RNA reads
+mat_rna <- subset(mat, 
+	                rownames(mat) %in% grep("PABO",
+		                                      rownames(mat), 
+		                                      ignore.case = T, 
+		                                      value = TRUE, 
+		                                      invert = TRUE)
+	                                       )
+
+mat_rna[1:10, 1:10]
+```
+
+```{r}
+# now build Seurat object
+# 1. create RNA assay
+rhap <- Seurat::CreateSeuratObject(counts = mat_rna, 
+		                               project = "rhap", 
+		                               assay = "RNA")
+
+# 2. Add the protein assay (if you don't have protein data, just ignore this step)
+rhap[["AB"]] <- Seurat::CreateAssayObject(counts = mat_ab)
+
+rhap
+```
+
+```{r}
+# add sample tag information
+rhap_tag <- "Rhapsody PBMC WTA AbSeq SMK/BD-Demo-WTA-AbSeq-SMK_Sample_Tag_Calls.csv"
+
+tag_mat <- read.table(file = rhap_tag, 
+                      header = T, 
+                      sep = ",") 
+
+tag_mat[1:5,]
+```
+
+```{r}
+# add tag information to meta.data in rhap
+rhap$tag <- tag_mat$Sample_Name
+
+# !!! alway check if the cell indices are aligned between two datasets
+identical(colnames(rhap), as.character(tag_mat$Cell_Index))
+
+# now inspect the Seurat object rhap to see what's in there.
+```
+
+### 10X Genomics
+```{r}
+# loading data for 10X is simpler as Seurat has built a function to do that
+# find the folder that contains the gene matrix data
+tenX_file <- "10x PBMC TotalSeq WTA filtered"
+
+# then read the files
+tenX_mat <- Read10X(tenX_file)
+
+# check the tenX object
+glimpse(tenX_mat)
+```
+
+```{r}
+# build the Seurat object
+# 1. create RNA assay
+tenX <- Seurat::CreateSeuratObject(counts = tenX_mat$`Gene Expression`, 
+		                               project = "tenX", 
+		                               assay = "RNA")
+
+# 2. Add the protein assay (if you don't have protein data, just ignore this step)
+tenX[["AB"]] <- Seurat::CreateAssayObject(counts = tenX_mat$`Antibody Capture`)
+
+tenX
+```
+
+### Save the raw Seurat object
+```{r}
+# Save Seurat objects to local drive
+save(rhap,
+     tenX,
+     file = "output/raw demo Seurat objects.RData")
+```
+
+### Process the Seurat obejct
+
+### QC check
+```{r}
+# QC checks
+#### Rhapsody demo data
+# 1. library size and genes detected in each cell
+p1 <- FeatureScatter(rhap, 
+                     feature1 = "nCount_RNA", 
+                     feature2 = "nFeature_RNA") + 
+      ggtitle("Rhapsody")
+p1
+
+# can't tell really. display in log scale may help?
+p2 <- FeatureScatter(rhap, 
+                     feature1 = "nCount_RNA", 
+                     feature2 = "nFeature_RNA") + 
+      scale_y_log10() + 
+      scale_x_log10() +
+      ggtitle("Rhapsody")
+
+p2
+
+
+#### 10X demo data
+p3 <- FeatureScatter(tenX, 
+                     feature1 = "nCount_RNA", 
+                     feature2 = "nFeature_RNA") + 
+      scale_y_log10() + 
+      scale_x_log10() +
+      ggtitle("10X")
+
+p3
+
+```
+```{r}
+# check mitochondrial genes
+# this is one of the ways to tell whether the cells are intact.
+rhap <- Seurat::PercentageFeatureSet(rhap, 
+                                     pattern = "^MT[.-]", 
+                                     col.name = "percent.mt")
+
+tenX <- Seurat::PercentageFeatureSet(tenX, 
+                                     pattern = "^MT-", 
+                                     col.name = "percent.mt")
+
+# the MT percentages on a violin plot
+p4 <- VlnPlot(rhap, features = "percent.mt")
+p5 <- VlnPlot(tenX, features = "percent.mt")
+
+wrap_plots(p4 + p5)
+```
+```{r}
+# remove poor quality cells
+#### for the Rhapsody data set
+# nFeature_RNA < 200 & percent.mt > 25
+rhap <- subset(rhap, 
+               subset = percent.mt < 25 & 
+               nFeature_RNA > 200, 
+               invert = F)
+
+#### for 10x data set
+# nFeature_RNA < 200 & percent.mt > 25
+tenX <- subset(tenX, 
+               subset = percent.mt < 25 & 
+               nFeature_RNA > 200, 
+               invert = F)
+
+p6 <- FeatureScatter(rhap, 
+                     feature1 = "nCount_RNA", 
+                     feature2 = "nFeature_RNA") + 
+      scale_y_log10() + 
+      scale_x_log10() +
+      ggtitle("Rhapsody")
+
+p7 <- FeatureScatter(tenX, 
+                     feature1 = "nCount_RNA", 
+                     feature2 = "nFeature_RNA") + 
+      scale_y_log10() + 
+      scale_x_log10() +
+      ggtitle("10X")
+
+p8 <- VlnPlot(rhap, features = "percent.mt")
+p9 <- VlnPlot(tenX, features = "percent.mt")
+
+p6 + p7 + p8 + p9 
+```
+
+### Normalization and scaling
+```{r}
+# Normalize the data
+# Default Seurat method
+# LogNormalize: Feature counts for each cell are divided by the total counts 
+# for that cell and multiplied by the scale.factor. 
+# This is then natural-log transformed using log1p.
+
+# This step is to remove biases from sequencing depth, library size or 
+# PCR amplification difference among cells
+
+# Rhap Seurat
+Seurat::DefaultAssay(rhap) <- 'AB'
+  
+# Normalize and scale data
+rhap <- rhap %>% 
+        Seurat::NormalizeData(normalization.method = 'CLR', 
+                              margin = 2)  %>% 
+        Seurat::FindVariableFeatures() %>% 
+        Seurat::ScaleData() 
+
+
+# 10X Seurat
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
