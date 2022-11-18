@@ -36,7 +36,7 @@ getwd()
 
 ```{r}
 # use a path as working directory
-setwd(dir = "/Users/wli/Documents/scRNAseq_Git_GitHub/ACS_MEL_2022/ACS_MEL_2022") 
+setwd(dir = "/Users/wli/Documents/scRNAseq_Git_GitHub/ACS_MEL_2022") 
 
 # try another path to test
 # setwd(dir = "/Users/wli/Documents/") 
@@ -48,8 +48,22 @@ setwd(dir = "/Users/wli/Documents/scRNAseq_Git_GitHub/ACS_MEL_2022/ACS_MEL_2022"
 ### However, when you create a new project, the working directory will be the 
 ### folder that you choose to store your project files
 
+### =================
+### Note: 
+In this working directory (or the folder you choose), you should have downloaded
+1. "demo_ACS2022MEL.Rmd" file
+2. 10x demo data (instruction to do so provided in the README.md file)
+3. Rhapsody demo data  (instruction to do so provided in the README.md file)
+
+And make sure you have installed packages:
+1. Seurat
+2. tidyverse
+3. patchwork
+### =================
+
+
 ## R basis
-### Numeric
+### 1. Numeric
 ```{r}
 # numbers
 x <- 3 # assign 3 to x
@@ -74,7 +88,7 @@ z <- c(x, y)
 z 
 ```
 
-### Strings
+### 2. Strings
 ```{r}
 a <- "I am a string"
 a
@@ -92,7 +106,7 @@ c <- c(a, b)
 c
 ```
 
-### Data frame
+### 3. Data frame
 ```{r}
 # dataframe
 df <- data.frame(col1 = c(1:3)*10, 
@@ -118,7 +132,7 @@ df[df$col1 > 10, ]
 df[df$col1 > 10, "col3"]
 ```
 
-### List
+### 4. List
 ```{r}
 # you can store different data types all in one R objects. The datasets do need to be
 # the same size.
@@ -133,6 +147,7 @@ b_list <- list(df, x, a)
 b_list
 
 ```
+
 ```{r}
 # assign names to each list of b_list
 names(b_list) <- c("df", "number", "string")
@@ -142,6 +157,7 @@ b_list$number
 
 ```
 
+### 5. logical operators
 ```{r}
 # logical operators
 saveFile <- TRUE # or just T
@@ -149,8 +165,10 @@ saveCSV <- F
 ```
 
 ## scRNAseq analysis
-### Read gene expression files to R
-### BD Rhapsody platform
+
+### 1. Read gene expression files to R
+###    1a. BD Rhapsody platform
+           Tell Rstudio where the files are
 ```{r}
 # Data from Rhapsody
 # The demo data selected was created from a WTA pipeline. Hence, use
@@ -166,29 +184,39 @@ rhap_file2 <- list.files("Rhapsody PBMC WTA AbSeq SMK",
                                                          full.names = T))]
 ```
 
+Then you can load the file(s).
+Here, a csv file will be uploaded.
 ```{r}
 # load file as a matrix
-mat <- read.table(file = rhap_file, 
-                  sep = ",", 
-                  header = T) 
+mat <- read.table(file = rhap_file, # path of the file
+                  sep = ",",        # column separator
+                  header = T)       # use first row as column name
 
 # check mat 
 mat[1:10, 1:10]
 
 ```
+
+Once the data is loaded to the environment, you can interact with it
 ```{r}
 # 1. use Cell_Index column as row names and remove this column
 # 2. transpose matrix
-mat <- mat %>% 
+
+# this operator "%>%" works as a pipe.
+# Object (calculation result) on the left side of "%>%" passes to the right hand side of the operator.
+
+mat <- mat %>%    
        tibble::column_to_rownames(var = "Cell_Index") %>% 
        t()
 
 mat[1:10, 1:10]
 ```
 
+Inspect the matrix
 ```{r}
 # Protein and RNA reads are mixed in the matrix. We need to separate them.
 # Protein oligos end with pAbO. It can be used as a protein selector.
+
 mat_ab <- subset(mat, 
                  rownames(mat) %in% grep("PABO",
 	 	                                     rownames(mat), 
@@ -212,6 +240,7 @@ mat_rna <- subset(mat,
 mat_rna[1:10, 1:10]
 ```
 
+Now it's ready to pass the gene matrix to the Seurat package
 ```{r}
 # now build Seurat object
 # 1. create RNA assay
@@ -225,7 +254,9 @@ rhap[["AB"]] <- Seurat::CreateAssayObject(counts = mat_ab)
 rhap
 ```
 
+What if the sample were pooled before cell capture?
 ```{r}
+# The BD Rhapsody pipeline 
 # add sample tag information
 rhap_tag <- "Rhapsody PBMC WTA AbSeq SMK/BD-Demo-WTA-AbSeq-SMK_Sample_Tag_Calls.csv"
 
@@ -236,6 +267,7 @@ tag_mat <- read.table(file = rhap_tag,
 tag_mat[1:5,]
 ```
 
+Not all the columns are needed. Pick the one that is suitable.
 ```{r}
 # add tag information to meta.data in rhap
 rhap$tag <- tag_mat$Sample_Name
@@ -246,7 +278,13 @@ identical(colnames(rhap), as.character(tag_mat$Cell_Index))
 # now inspect the Seurat object rhap to see what's in there.
 ```
 
-### 10X Genomics
+### 1b. 10X Genomics
+10X Genomics system is arguably the most famous platform in scRNAseq.
+Lots of functions, packages, software are built based on that.
+You probably will find less hoops to jump through when trying other scRNAseq packages.
+
+Like in here, Seurat has built a function to load 10X data.
+
 ```{r}
 # loading data for 10X is simpler as Seurat has built a function to do that
 # find the folder that contains the gene matrix data
@@ -272,7 +310,13 @@ tenX[["AB"]] <- Seurat::CreateAssayObject(counts = tenX_mat$`Antibody Capture`)
 tenX
 ```
 
-### Save the raw Seurat object
+Note: 10X platform also provides results from sample demultiplexing.
+This sample tag information can be added to the Seurat object the 
+same way as above in the BD Rhapsody section.
+
+### 2. Save the raw Seurat object
+So that you can come back from this point and don't need to start from loading the data to R.
+
 ```{r}
 # Save Seurat objects to local drive
 save(rhap,
@@ -280,9 +324,15 @@ save(rhap,
      file = "output/raw demo Seurat objects.RData")
 ```
 
-### Process the Seurat obejct
+### 3. Process the Seurat obejct
 
-### QC check
+###    3a. QC check
+The BD Rhapsody system allows you to view (via the cartridge scanner) what cells are captured.
+So, that feature sort of gives you a hint of the quality of the cells upon capture.
+
+On the other hand, the process of cell-bead droplet formation can't be reviewed in the 10X system.
+But cells can be inspected while doing cell counting, e.g. through haemocytometer.
+
 ```{r}
 # QC checks
 #### Rhapsody demo data
@@ -315,6 +365,11 @@ p3 <- FeatureScatter(tenX,
 p3
 
 ```
+
+If a cell had RNA leakage before capture, the ratio between mitochondrial gene (MT-**) count against 
+RNA gene count in this cell is likely over the average line of all cells. Those cells with high MT% are 
+usually considered as low quality cells.
+
 ```{r}
 # check mitochondrial genes
 # this is one of the ways to tell whether the cells are intact.
@@ -368,7 +423,19 @@ p9 <- VlnPlot(tenX, features = "percent.mt")
 p6 + p7 + p8 + p9 
 ```
 
-### Normalization and scaling
+### 3b. Normalization and scaling
+The purpose of normalization:
+1. library sizes can be different among cells
+2. efficiency in cDNA capture or PCR amplification can be different 
+(read more in here: https://bioconductor.org/books/3.15/OSCA.basic/normalization.html#normalization-transformation)
+3. gene size varies
+
+The purpose of scaling:
+1. find the highly variable genes
+2. use both average gene expression and dispersion to calculate the z-score
+(read more in here: https://learn.gencore.bio.nyu.edu/single-cell-rnaseq/seurat-part-3-data-normalization/)
+3. scaled data will be fed into PCA calculation
+
 ```{r}
 # Normalize the data
 # Default Seurat method
@@ -389,13 +456,81 @@ rhap <- rhap %>%
         Seurat::FindVariableFeatures() %>% 
         Seurat::ScaleData() 
 
+# check highly variable genes
+p10 <- VariableFeaturePlot(rhap)
+p11 <- LabelPoints(plot = p10, points = top10, repel = TRUE)
+p10 + p11
 
 # 10X Seurat
 ```
 
+### 3c. Check how many PCs to use for UMAP and clustering
+Inspect top X numbers of principle components to check the degree of variance
+in each component.
+
+```{r}
+# elbow plot
+ElbowPlot(rhap)
+ElbowPlot(tenX)
+```
+
+### 3d. Play with UMAP and cluster parameters
+```{r}
+# umap
+# use ?RunUMAP to view the full description of each parameter.
+# Selection here is mainly for global & local structures of the embedded points.
+rhap <- RunUMAP(
+                rhap,
+                umap.method = "uwot",    # other methods: uwot-learn, umap-learn
+                n.neighbors = 30L,       # 5-50, larger number to preserve global structure
+                min.dist = 0.3,          # 0.001 - 0.5 how tightly the points to be. Higher values to get more evenly distribution.
+                spread = 1,              # the degree of points spreading out
+                seed.use = 42,
+        )
 
 
+# cluster
+# Two steps:
+# 1. Calculate the nearest-neighbor graph
+rhap <- FindNeighbors(rhap,
+                      dims = 1:15) # PCA dimensions to use
 
+# 2. Assign cells to clusters based on the KNN information above
+rhap <- FindClusters(rhap,
+                     resolution = 0.5) # larger value for more communities (clusters)
+
+# let's change the resolution value and see how it looks.
+rhap <- FindClusters(rhap,
+                     resolution = 0.05) # larger value for more communities (clusters)
+
+rhap <- FindClusters(rhap,
+                     resolution = 1) # larger value for more communities (clusters)
+
+rhap <- FindClusters(rhap,
+                     resolution = 5) # larger value for more communities (clusters)
+
+```
+
+### 3e. Differential gene expression
+Now you have cells in different groups. 
+Let's find out what genes are up-regulated in each group against the rest.
+
+```{r}
+# find marker genes
+# get more inforamtion about this FindAllMarkers function by running this line in the console: ?FindAllMarker
+rhap.markers <- FindAllMarkers(rhap, 
+                               only.pos = TRUE, # only calculate the up-regulated genes. Set it to FALSE to get down-regulated genes
+                               )
+
+# Inspect the marker gene matrix
+# Subset the top 5 marker genes of each group
+rhap.markers %>%
+    group_by(cluster) %>%
+    slice_max(n = 5, 
+              order_by = avg_log2FC)
+```
+
+## Back to PowerPoint talk for advanced analysis
 
 
 
