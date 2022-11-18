@@ -117,6 +117,7 @@ df <- data.frame(col1 = c(1:3)*10,
                                "row name 3"))
 df
 ```
+
 ```{r}
 # subset a column or more
 df$col1
@@ -124,6 +125,7 @@ df$col1
 df[c("col1", "col3")]
 
 ```
+
 ```{r}
 # subset based on criterion 
 df[df$col1 > 10, ]
@@ -319,6 +321,7 @@ So that you can come back from this point and don't need to start from loading t
 
 ```{r}
 # Save Seurat objects to local drive
+# Create a output folder (manually)
 save(rhap,
      tenX,
      file = "output/raw demo Seurat objects.RData")
@@ -386,6 +389,8 @@ p4 <- VlnPlot(rhap, features = "percent.mt")
 p5 <- VlnPlot(tenX, features = "percent.mt")
 
 wrap_plots(p4 + p5)
+p4
+p5
 ```
 ```{r}
 # remove poor quality cells
@@ -447,6 +452,7 @@ The purpose of scaling:
 # PCR amplification difference among cells
 
 # Rhap Seurat
+# Process protein data
 Seurat::DefaultAssay(rhap) <- 'AB'
   
 # Normalize and scale data
@@ -456,62 +462,244 @@ rhap <- rhap %>%
         Seurat::FindVariableFeatures() %>% 
         Seurat::ScaleData() 
 
+# perform PCA
+rhap <- Seurat::RunPCA(object = rhap, 
+                       reduction.name = 'apca')
+
+# perform UMAP
+rhap <- Seurat::RunUMAP(rhap, 
+                        reduction = 'apca', 
+                        dims = 1:7, 
+                        assay = 'AB', 
+                        reduction.name = 'adt.umap',
+			                  reduction.key = 'adtUMAP_')
+
+# Find clusters
+rhap <- Seurat::FindNeighbors(rhap, 
+                              reduction = "apca", 
+                              dims = 1:7)
+
+rhap <- Seurat::FindClusters(rhap, 
+                             resolution = 0.8, 
+                             graph.name = "AB_snn")
+
+# check clusters by protein data
+DimPlot(rhap, 
+        reduction = "adt.umap", 
+        group.by = "seurat_clusters")
+
+# Process RNA data
+Seurat::DefaultAssay(rhap) <- 'RNA'
+
+# find top most variant genes
+rhap <- rhap %>% 
+        Seurat::NormalizeData() %>% 
+		    Seurat::FindVariableFeatures(., selection.method = "vst")
+
+# Identify the 10 most highly variable genes
+top20 <- head(VariableFeatures(rhap), 20)
+
 # check highly variable genes
 p10 <- VariableFeaturePlot(rhap)
-p11 <- LabelPoints(plot = p10, points = top10, repel = TRUE)
-p10 + p11
+p11 <- LabelPoints(plot = p10, points = top20, repel = TRUE)
+p11
 
-# 10X Seurat
+# scale data
+rhap <- Seurat::ScaleData(rhap, 
+                          verbose = FALSE)
+
+# perform PCA
+rhap <- Seurat::RunPCA(rhap,
+                       verbose = FALSE)
+
+# Elbow plot
+# Inspect top X numbers of principle components to check the degree of variance
+# in each component.
+ElbowPlot(rhap, 
+          ndims = 50)
+
+# perform UMAP
+rhap <- Seurat::RunUMAP(rhap, 
+                        reduction = "pca", 
+                        dims = 1:30)
+
+# Find clusters
+rhap <- Seurat::FindNeighbors(rhap,
+                              reduction = "pca", 
+                              dims = 1:30)
+
+rhap <- Seurat::FindClusters(rhap, 
+                             resolution = 0.8)
+
+rhap <- Seurat::BuildClusterTree(rhap)
+
+# check clusters by RNA content
+DimPlot(rhap, 
+        reduction = "umap")
 ```
-
-### 3c. Check how many PCs to use for UMAP and clustering
-Inspect top X numbers of principle components to check the degree of variance
-in each component.
 
 ```{r}
-# elbow plot
-ElbowPlot(rhap)
-ElbowPlot(tenX)
+# 10X Seurat
+# Rhap Seurat
+# Process protein data
+Seurat::DefaultAssay(tenX) <- 'AB'
+  
+# Normalize and scale data
+tenX <- tenX %>% 
+        Seurat::NormalizeData(normalization.method = 'CLR', 
+                              margin = 2)  %>% 
+        Seurat::FindVariableFeatures() %>% 
+        Seurat::ScaleData() 
+
+# perform PCA
+tenX <- Seurat::RunPCA(object = tenX, 
+                       reduction.name = 'apca')
+
+# perform UMAP
+tenX <- Seurat::RunUMAP(tenX, 
+                        reduction = 'apca', 
+                        dims = 1:7, 
+                        assay = 'AB', 
+                        reduction.name = 'adt.umap',
+			                  reduction.key = 'adtUMAP_')
+
+# Find clusters
+tenX <- Seurat::FindNeighbors(tenX, 
+                              reduction = "apca", 
+                              dims = 1:7)
+
+tenX <- Seurat::FindClusters(tenX, 
+                             resolution = 0.8, 
+                             graph.name = "AB_snn")
+
+# check clusters by protein data
+DimPlot(tenX, 
+        reduction = "adt.umap", 
+        group.by = "seurat_clusters")
+
+# Process RNA data
+Seurat::DefaultAssay(tenX) <- 'RNA'
+
+# find top most variant genes
+tenX <- tenX %>% 
+        Seurat::NormalizeData() %>% 
+		    Seurat::FindVariableFeatures(., selection.method = "vst")
+
+# Identify the 10 most highly variable genes
+top20 <- head(VariableFeatures(tenX), 20)
+
+# check highly variable genes
+p10 <- VariableFeaturePlot(tenX)
+p11 <- LabelPoints(plot = p10, points = top20, repel = TRUE)
+p11
+
+# scale data
+tenX <- Seurat::ScaleData(tenX, 
+                          verbose = FALSE)
+
+# perform PCA
+tenX <- Seurat::RunPCA(tenX,
+                       verbose = FALSE)
+
+# Elbow plot
+# Inspect top X numbers of principle components to check the degree of variance
+# in each component.
+ElbowPlot(tenX, 
+          ndims = 50)
+
+# perform UMAP
+tenX <- Seurat::RunUMAP(tenX, 
+                        reduction = "pca", 
+                        dims = 1:30)
+
+# Find clusters
+tenX <- Seurat::FindNeighbors(tenX,
+                              reduction = "pca", 
+                              dims = 1:30)
+
+tenX <- Seurat::FindClusters(tenX, 
+                             resolution = 0.8)
+
+tenX <- Seurat::BuildClusterTree(tenX)
+
+# check clusters by RNA content
+DimPlot(tenX, 
+        reduction = "umap")
 ```
 
-### 3d. Play with UMAP and cluster parameters
+
+### 3c. Play with UMAP and cluster parameters
 ```{r}
 # umap
 # use ?RunUMAP to view the full description of each parameter.
 # Selection here is mainly for global & local structures of the embedded points.
 rhap <- RunUMAP(
                 rhap,
+                dims = 1:30,
                 umap.method = "uwot",    # other methods: uwot-learn, umap-learn
                 n.neighbors = 30L,       # 5-50, larger number to preserve global structure
-                min.dist = 0.3,          # 0.001 - 0.5 how tightly the points to be. Higher values to get more evenly distribution.
+                min.dist = 0.3,          # 0.001 - 0.5 how tightly the points to be. Higher values to 
+                                         # get more evenly distribution.
                 spread = 1,              # the degree of points spreading out
                 seed.use = 42,
         )
 
+DimPlot(rhap, 
+        reduction = "umap") + ggtitle("default setitngs - UMAP")
+
+rhap <- RunUMAP(
+                rhap,
+                dims = 1:30,
+                umap.method = "uwot",    # other methods: uwot-learn, umap-learn
+                n.neighbors = 40L,       # 5-50, larger number to preserve global structure
+                min.dist = 0.5,          # 0.001 - 0.5 how tightly the points to be. Higher values to 
+                                         # get more evenly distribution.
+                spread = 3,              # the degree of points spreading out
+                seed.use = 42,
+        )
+
+DimPlot(rhap, 
+        reduction = "umap") + ggtitle("More global structure - UMAP")
 
 # cluster
 # Two steps:
 # 1. Calculate the nearest-neighbor graph
 rhap <- FindNeighbors(rhap,
-                      dims = 1:15) # PCA dimensions to use
+                      dims = 1:30) # PCA dimensions to use
 
 # 2. Assign cells to clusters based on the KNN information above
 rhap <- FindClusters(rhap,
                      resolution = 0.5) # larger value for more communities (clusters)
 
+DimPlot(rhap, 
+        reduction = "umap") + ggtitle("res 0.5 - clustering")
+
 # let's change the resolution value and see how it looks.
 rhap <- FindClusters(rhap,
                      resolution = 0.05) # larger value for more communities (clusters)
 
+DimPlot(rhap, 
+        reduction = "umap") + ggtitle("res 0.05 - clustering")
+
 rhap <- FindClusters(rhap,
                      resolution = 1) # larger value for more communities (clusters)
+
+DimPlot(rhap, 
+        reduction = "umap") + ggtitle("res 1 - clustering")
 
 rhap <- FindClusters(rhap,
                      resolution = 5) # larger value for more communities (clusters)
 
+DimPlot(rhap, 
+        reduction = "umap") + ggtitle("res 5 - clustering")
+
+# resolution = 0.5 seems good. Let's use that.
+rhap <- FindClusters(rhap,
+                     resolution = 0.5) # larger value for more communities (clusters)
+
 ```
 
-### 3e. Differential gene expression
+### 3d. Differential gene expression
 Now you have cells in different groups. 
 Let's find out what genes are up-regulated in each group against the rest.
 
@@ -519,15 +707,27 @@ Let's find out what genes are up-regulated in each group against the rest.
 # find marker genes
 # get more inforamtion about this FindAllMarkers function by running this line in the console: ?FindAllMarker
 rhap.markers <- FindAllMarkers(rhap, 
-                               only.pos = TRUE, # only calculate the up-regulated genes. Set it to FALSE to get down-regulated genes
+                               only.pos = TRUE, # only calculate the up-regulated genes. 
+                                                # Set it to FALSE to get down-regulated genes
                                )
 
 # Inspect the marker gene matrix
 # Subset the top 5 marker genes of each group
-rhap.markers %>%
-    group_by(cluster) %>%
-    slice_max(n = 5, 
-              order_by = avg_log2FC)
+rhap.markers.short <- rhap.markers %>%
+                      group_by(cluster) %>%
+                      slice_max(n = 5, 
+                      order_by = avg_log2FC)
+
+head(rhap.markers.short)
+```
+
+## Save data
+```{r}
+# Save Seurat objects to local drive
+save(rhap,
+     tenX,
+     rhap.markers,
+     file = "output/Seurat with DGE.RData")
 ```
 
 ## Back to PowerPoint talk for advanced analysis
