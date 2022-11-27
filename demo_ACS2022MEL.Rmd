@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+### More materials will be released
 
 ### This is a RMarkdown file, which has separate sections for texts and R scripts. 
 ### It's a good tool to build analytical reports.
